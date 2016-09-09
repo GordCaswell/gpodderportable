@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # gPodder - A media aggregator and podcast client
-# Copyright (c) 2005-2015 Thomas Perl and the gPodder Team
+# Copyright (c) 2005-2016 Thomas Perl and the gPodder Team
 #
 # gPodder is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ def setup(verbose=True):
         root.addHandler(file_handler)
 
     logger.debug('==== gPodder starts up (ui=%s) ===', ', '.join(name
-        for name in ('cli', 'gtk', 'qml') if getattr(gpodder.ui, name, False)))
+        for name in ('cli', 'gtk') if getattr(gpodder.ui, name, False)))
 
     return True
 

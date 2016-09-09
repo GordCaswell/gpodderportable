@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # gPodder - A media aggregator and podcast client
-# Copyright (c) 2005-2015 Thomas Perl and the gPodder Team
+# Copyright (c) 2005-2016 Thomas Perl and the gPodder Team
 #
 # gPodder is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -104,15 +104,6 @@ defaults = {
             'colors': True,
         },
 
-        # Settings for the QML UI (MeeGo Harmattan / N9)
-        'qml': {
-            'state': {
-                'episode_list_filter': 0,
-            },
-
-            'autorotate': False,
-        },
-
         # Settings for the Gtk UI
         'gtk': {
             'state': {
@@ -200,11 +191,6 @@ defaults = {
 
     'extensions': {
         'enabled': [],
-    },
-
-    'flattr': {
-        'token': '',
-        'flattr_on_play': False,
     },
 }
 

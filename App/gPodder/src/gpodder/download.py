@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # gPodder - A media aggregator and podcast client
-# Copyright (c) 2005-2015 Thomas Perl and the gPodder Team
+# Copyright (c) 2005-2016 Thomas Perl and the gPodder Team
 #
 # gPodder is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -820,8 +820,14 @@ class DownloadTask(object):
                             real_url, os.path.basename(self.filename))
 
             # Look at the Content-disposition header; use if if available
-            disposition_filename = get_header_param(headers, \
-                    'filename', 'content-disposition')
+            disposition_filename = get_header_param(headers, 'filename', 'content-disposition')
+
+            if disposition_filename is not None:
+                try:
+                    disposition_filename.decode('ascii')
+                except:
+                    logger.warn('Content-disposition header contains non-ASCII characters - ignoring')
+                    disposition_filename = None
 
             # Some servers do send the content-disposition header, but provide
             # an empty filename, resulting in an empty string here (bug 1440)

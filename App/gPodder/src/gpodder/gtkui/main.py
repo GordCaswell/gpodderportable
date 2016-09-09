@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # gPodder - A media aggregator and podcast client
-# Copyright (c) 2005-2015 Thomas Perl and the gPodder Team
+# Copyright (c) 2005-2016 Thomas Perl and the gPodder Team
 #
 # gPodder is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -84,7 +84,6 @@ from gpodder.gtkui.desktop.podcastdirectory import gPodderPodcastDirectory
 from gpodder.gtkui.interface.progress import ProgressIndicator
 
 from gpodder.gtkui.desktop.sync import gPodderSyncUI
-from gpodder.gtkui import flattr
 from gpodder.gtkui import shownotes
 
 from gpodder.dbusproxy import DBusPodcastsProxy
@@ -118,7 +117,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
         self.config = self.core.config
         self.db = self.core.db
         self.model = self.core.model
-        self.flattr = self.core.flattr
         self.options = options
         BuilderWidget.__init__(self, None)
 
@@ -1695,7 +1693,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
             episodes = self.get_selected_episodes()
             any_locked = any(e.archive for e in episodes)
             any_new = any(e.is_new for e in episodes)
-            any_flattrable = any(e.payment_url for e in episodes)
             downloaded = all(e.was_downloaded(and_exists=True) for e in episodes)
             downloading = any(e.downloading for e in episodes)
 
@@ -1781,12 +1778,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
                 item = gtk.CheckMenuItem(_('Archive'))
                 item.set_active(any_locked)
                 item.connect('activate', lambda w: self.on_item_toggle_lock_activate( w, False, not any_locked))
-                menu.append(item)
-
-            if any_flattrable and self.config.flattr.token:
-                menu.append(gtk.SeparatorMenuItem())
-                item = gtk.MenuItem(_('Flattr this'))
-                item.connect('activate', self.flattr_selected_episodes)
                 menu.append(item)
 
             menu.append(gtk.SeparatorMenuItem())
@@ -1912,13 +1903,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
                     continue # This file was handled by the D-Bus call
                 except Exception, e:
                     logger.error('Calling Panucci using D-Bus', exc_info=True)
-
-            # flattr episode if auto-flattr is enabled
-            if (episode.payment_url and self.config.flattr.token and
-                    self.config.flattr.flattr_on_play):
-                success, message = self.flattr.flattr_url(episode.payment_url)
-                self.show_message(message, title=_('Flattr status'),
-                        important=not success)
 
             groups[player].append(filename)
 
@@ -2685,15 +2669,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
             episode.mark_old()
         self.on_selected_episodes_status_changed()
 
-    def flattr_selected_episodes(self, w=None):
-        if not self.config.flattr.token:
-            return
-
-        for episode in [e for e in self.get_selected_episodes() if e.payment_url]:
-            success, message = self.flattr.flattr_url(episode.payment_url)
-            self.show_message(message, title=_('Flattr status'),
-                important=not success)
-
     def on_item_toggle_played_activate( self, widget, toggle = True, new_value = False):
         for episode in self.get_selected_episodes():
             if toggle:
@@ -2912,7 +2887,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
     def on_itemPreferences_activate(self, widget, *args):
         gPodderPreferences(self.main_window, \
                 _config=self.config, \
-                flattr=self.flattr, \
                 user_apps_reader=self.user_apps_reader, \
                 parent_window=self.main_window, \
                 mygpo_client=self.mygpo_client, \
@@ -2968,8 +2942,7 @@ class gPodder(BuilderWidget, dbus.service.Object):
                 cover_downloader=self.cover_downloader,
                 sections=set(c.section for c in self.channels),
                 clear_cover_cache=self.podcast_list_model.clear_cover_cache,
-                _config=self.config,
-                _flattr=self.flattr)
+                _config=self.config)
 
     def on_itemMassUnsubscribe_activate(self, item=None):
         columns = (
@@ -3170,73 +3143,39 @@ class gPodder(BuilderWidget, dbus.service.Object):
         dlg.add_button(gtk.STOCK_CLOSE, gtk.RESPONSE_OK).show()
         dlg.set_resizable(False)
 
-        bg = gtk.HBox(spacing=10)
-        bg.pack_start(gtk.image_new_from_file(gpodder.icon_file), expand=False)
+        bg = gtk.HBox(spacing=6)
+        pb = gtk.gdk.pixbuf_new_from_file_at_size(gpodder.icon_file, 160, 160)
+        bg.pack_start(gtk.image_new_from_pixbuf(pb), expand=False)
         vb = gtk.VBox()
         vb.set_spacing(6)
         label = gtk.Label()
         label.set_alignment(0, 1)
-        label.set_markup('<b><big>gPodder</big> %s</b>' % gpodder.__version__)
-        vb.pack_start(label)
-        label = gtk.Label()
-        label.set_alignment(0, 0)
-        label.set_markup('<small><a href="%s">%s</a></small>' % \
-                ((cgi.escape(gpodder.__url__),)*2))
+        label.set_markup('\n'.join(x.strip() for x in """
+        <b>gPodder {version} ({date})</b>
+        <i>"{relname}"</i>
+
+        {copyright}
+        License: {license}
+
+        <a href="{url}">Website</a> · <a href="{donate_url}">Donate</a> · <a href="{bugs_url}">Bug Tracker</a>
+        """.format(version=gpodder.__version__,
+                   date=gpodder.__date__,
+                   relname=gpodder.__relname__,
+                   copyright=gpodder.__copyright__,
+                   license=gpodder.__license__,
+                   donate_url='http://gpodder.org/donate',
+                   bugs_url='https://bugs.gpodder.org/',
+                   url=cgi.escape(gpodder.__url__)).strip().split('\n')))
+
         vb.pack_start(label)
         bg.pack_start(vb)
+        bg.pack_start(gtk.Label())
 
-        out = gtk.VBox(spacing=10)
-        out.set_border_width(12)
-        out.pack_start(bg, expand=False)
-        out.pack_start(gtk.HSeparator())
-        out.pack_start(gtk.Label(gpodder.__copyright__))
-
-        button_box = gtk.HButtonBox()
-        button = gtk.Button(_('Donate / Wishlist'))
-        button.connect('clicked', self.on_item_support_activate)
-        button_box.pack_start(button)
-        button = gtk.Button(_('Report a problem'))
-        button.connect('clicked', self.on_bug_tracker_activate)
-        button_box.pack_start(button)
-        out.pack_start(button_box, expand=False)
-
-        credits = gtk.TextView()
-        credits.set_left_margin(5)
-        credits.set_right_margin(5)
-        credits.set_pixels_above_lines(5)
-        credits.set_pixels_below_lines(5)
-        credits.set_editable(False)
-        credits.set_cursor_visible(False)
-        sw = gtk.ScrolledWindow()
-        sw.set_shadow_type(gtk.SHADOW_IN)
-        sw.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-        sw.add(credits)
-        credits.set_size_request(-1, 160)
-        out.pack_start(sw, expand=True, fill=True)
-
-        dlg.vbox.pack_start(out, expand=False)
+        dlg.vbox.pack_start(bg, expand=False)
         dlg.connect('response', lambda dlg, response: dlg.destroy())
 
         dlg.vbox.show_all()
 
-        if os.path.exists(gpodder.credits_file):
-            credits_txt = open(gpodder.credits_file).read().strip().split('\n')
-            translator_credits = _('translator-credits')
-            if translator_credits != 'translator-credits':
-                app_authors = [_('Translation by:'), translator_credits, '']
-            else:
-                app_authors = []
-
-            app_authors += [_('Thanks to:')]
-            app_authors += credits_txt
-
-            buffer = gtk.TextBuffer()
-            buffer.set_text('\n'.join(app_authors))
-            credits.set_buffer(buffer)
-        else:
-            sw.hide()
-
-        credits.grab_focus()
         dlg.run()
 
     def on_wNotebook_switch_page(self, notebook, page, page_num):
