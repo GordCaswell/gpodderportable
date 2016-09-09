@@ -51,11 +51,11 @@
  [ OPTIONAL DEPENDENCIES ]
 
     - Bluetooth file sending: gnome-obex-send or bluetooth-sendto
-    - HTML shownotes: python-webkit
     - Size detection on Windows: PyWin32
     - Native OS X support: ige-mac-integration
     - MP3 Player Sync Support: python-eyed3 (0.7 or newer)
     - iPod Sync Support: python-gpod
+    - Clickable links in GTK UI show notes: html5lib
 
 
  [ BUILD DEPENDENCIES ]
@@ -144,6 +144,19 @@
     download directory directly on a MP3 player or USB disk:
 
         export GPODDER_HOME=/media/usbdisk/gpodder-data/
+
+		
+	OS X Specific Notes 
+	
+		default GPODDER_HOME="$HOME/Library/Application Support/gPodder"
+		default GPODDER_DOWNLOAD_DIR="$HOME/Library/Application Support/gPodder/download"
+
+		These settings may be modified by editing the following file of the .app : 
+			/Applications/gPodder.app/Contents/MacOSX/_launcher
+			
+		Add and edit the following lines to alter the launch enviroment on OS X : 
+			export GPODDER_HOME="$HOME/Library/Application Support/gPodder"
+			export GPODDER_DOWNLOAD_DIR="$HOME/Library/Application Support/gPodder/download"
 
 
  [ CHANGING THE DOWNLOAD DIRECTORY ]

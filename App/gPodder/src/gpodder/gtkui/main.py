@@ -140,10 +140,7 @@ class gPodder(BuilderWidget, dbus.service.Object):
         self.config.add_observer(self.on_config_changed)
 
         self.shownotes_pane = gtk.HBox()
-        if shownotes.have_webkit and self.config.enable_html_shownotes:
-            self.shownotes_object = shownotes.gPodderShownotesHTML(self.shownotes_pane)
-        else:
-            self.shownotes_object = shownotes.gPodderShownotesText(self.shownotes_pane)
+        self.shownotes_object = shownotes.gPodderShownotesText(self.shownotes_pane)
 
         # Vertical paned for the episode list and shownotes
         self.vpaned = gtk.VPaned()
@@ -3111,7 +3108,16 @@ class gPodder(BuilderWidget, dbus.service.Object):
         If silent=False, a message will be shown even if no updates are
         available (set silent=False when the check is manually triggered).
         """
-        up_to_date, version, released, days = util.get_update_info()
+        try:
+            up_to_date, version, released, days = util.get_update_info()
+        except Exception as e:
+            if silent:
+                logger.warn('Could not check for updates.', exc_info=True)
+            else:
+                title = _('Could not check for updates')
+                message = _('Please try again later.')
+                self.show_message(message, title, important=True)
+            return
 
         if up_to_date and not silent:
             title = _('No updates available')
@@ -3149,7 +3155,7 @@ class gPodder(BuilderWidget, dbus.service.Object):
         vb = gtk.VBox()
         vb.set_spacing(6)
         label = gtk.Label()
-        label.set_alignment(0, 1)
+        label.set_alignment(0, 0.5)
         label.set_markup('\n'.join(x.strip() for x in """
         <b>gPodder {version} ({date})</b>
         <i>"{relname}"</i>
