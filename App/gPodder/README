@@ -31,7 +31,7 @@
  [ DEPENDENCIES ]
 
     - Python 2.7 or newer              http://python.org/
-    - Feedparser 5.1.2 or newer        http://code.google.com/p/feedparser/
+    - Podcastparser 0.6.0 or newer     http://gpodder.org/podcastparser/
     - mygpoclient 1.7 or newer         http://gpodder.org/mygpoclient/
     - Python D-Bus bindings
 
@@ -39,7 +39,7 @@
     the dummy (no-op) D-Bus module provided in "tools/fake-dbus-module/".
 
     For quick testing, you can use the script tools/localdepends.py to
-    install local copies of feedparser and mygpoclient into "src/" from
+    install local copies of podcastparser and mygpoclient into "src/" from
     PyPI. With this, you get a self-contained gPodder CLI codebase.
 
 
@@ -207,39 +207,13 @@
     check if the bug still appears to see if an extension causes the bug.
 
 
- [ TRANSLATIONS ]
-
-    These instructions are mostly useful for the maintainer, but they are
-    documented here in case you want to update translations yourself:
-
-    To upload a changed translation template:
-
-        make messages       # update translations from source
-        make clean          # remove temporary files after "make messages"
-        tx push --source    # upload po/messages.pot to transifex.net
-
-    To download a translation that has been updated:
-
-        tx pull -l XX -f    # download po/XX.po from transifex.net
-
-    To generate Git commit commands for the translation updates:
-
-        python tools/i18n/generate_commits.py
-
-    The "tx" command is provided by the Transifex client (transifex-client
-    in Debian/Ubuntu) which can be obtained from:
-
-        http://help.transifex.com/features/client/
-
-
-
  [ MORE INFORMATION ]
 
     - Homepage                         http://gpodder.org/
-    - Bug tracker                      http://bugs.gpodder.org/
+    - Bug tracker                      https://github.com/gpodder/gpodder/issues
     - Mailing list                     http://freelists.org/list/gpodder
     - IRC channel                      #gpodder on irc.freenode.net
 
   ............................................................................
-             Last updated: 2016-02-03 by Thomas Perl <thp.io/about>
+             Last updated: 2016-11-30 by Thomas Perl <thp.io/about>
 

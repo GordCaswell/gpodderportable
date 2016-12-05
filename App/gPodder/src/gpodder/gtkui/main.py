@@ -220,8 +220,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
         if self.config.podcast_list_hide_boring:
             self.item_view_hide_boring_podcasts.set_active(True)
 
-        self.currently_updating = False
-
         self.download_tasks_seen = set()
         self.download_list_update_enabled = False
         self.download_task_monitors = set()
@@ -536,9 +534,7 @@ class gPodder(BuilderWidget, dbus.service.Object):
             return False
 
         role = getattr(treeview, TreeViewHelper.ROLE)
-        if role == TreeViewHelper.ROLE_PODCASTS:
-            return self.currently_updating
-        elif (role == TreeViewHelper.ROLE_EPISODES and event.button == 1):
+        if role == TreeViewHelper.ROLE_EPISODES and event.button == 1:
             # Toggle episode "new" status by clicking the icon (bug 1432)
             result = treeview.get_path_at_pos(int(event.x), int(event.y))
             if result is not None:
@@ -975,10 +971,7 @@ class gPodder(BuilderWidget, dbus.service.Object):
             progress = None
 
             if role == TreeViewHelper.ROLE_EPISODES:
-                if self.currently_updating:
-                    text = _('Loading episodes')
-                elif self.config.episode_list_view_mode != \
-                        EpisodeListModel.VIEW_ALL:
+                if self.config.episode_list_view_mode != EpisodeListModel.VIEW_ALL:
                     text = _('No episodes in current view')
                 else:
                     text = _('No episodes available')
@@ -1401,6 +1394,7 @@ class gPodder(BuilderWidget, dbus.service.Object):
 
         # Update icon list to show changes, if any
         self.update_episode_list_icons(all=True)
+        self.update_podcast_list_model()
 
 
     def format_episode_list(self, episode_list, max_episodes=10):
@@ -1942,9 +1936,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
             self.toolCancel.set_sensitive(True)
             return (False, False, False, False, False, False)
 
-        if self.currently_updating:
-            return (False, False, False, False, False, False)
-
         ( can_play, can_download, can_cancel, can_delete ) = (False,)*4
         ( is_played, is_locked ) = (False,)*2
 
@@ -2103,24 +2094,15 @@ class gPodder(BuilderWidget, dbus.service.Object):
                 logger.error('Cannot select podcast in list', exc_info=True)
 
     def on_episode_list_filter_changed(self, has_episodes):
-        pass # XXX: Remove?
+        self.play_or_download()
 
     def update_episode_list_model(self):
         if self.channels and self.active_channel is not None:
-            self.currently_updating = True
-            self.episode_list_model.clear()
+            self.treeAvailable.get_selection().unselect_all()
+            self.treeAvailable.scroll_to_point(0, 0)
 
-            def update():
-                descriptions = self.config.episode_list_descriptions
-                self.episode_list_model.replace_from_channel(self.active_channel, descriptions)
-
-                self.treeAvailable.get_selection().unselect_all()
-                self.treeAvailable.scroll_to_point(0, 0)
-
-                self.currently_updating = False
-                self.play_or_download()
-
-            util.idle_add(update)
+            descriptions = self.config.episode_list_descriptions
+            self.episode_list_model.replace_from_channel(self.active_channel, descriptions)
         else:
             self.episode_list_model.clear()
 
@@ -2530,6 +2512,9 @@ class gPodder(BuilderWidget, dbus.service.Object):
     def close_gpodder(self):
         """ clean everything and exit properly
         """
+        # Cancel any running background updates of the episode list model
+        self.episode_list_model.background_update = None
+
         self.gPodder.hide()
 
         # Notify all tasks to to carry out any clean-up actions
@@ -2541,8 +2526,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
         self.core.shutdown()
 
         self.quit()
-        if macapp is None:
-            sys.exit(0)
 
     def delete_episode_list(self, episodes, confirm=True, skip_locked=True,
             callback=None):
@@ -3138,7 +3121,7 @@ class gPodder(BuilderWidget, dbus.service.Object):
                 util.open_website('http://gpodder.org/downloads')
 
     def on_bug_tracker_activate(self, widget, *args):
-        util.open_website('https://bugs.gpodder.org/enter_bug.cgi?product=gPodder&component=Application&version=%s' % gpodder.__version__)
+        util.open_website('https://github.com/gpodder/gpodder/issues')
 
     def on_item_support_activate(self, widget):
         util.open_website('http://gpodder.org/donate')
@@ -3170,7 +3153,7 @@ class gPodder(BuilderWidget, dbus.service.Object):
                    copyright=gpodder.__copyright__,
                    license=gpodder.__license__,
                    donate_url='http://gpodder.org/donate',
-                   bugs_url='https://bugs.gpodder.org/',
+                   bugs_url='https://github.com/gpodder/gpodder/issues',
                    url=cgi.escape(gpodder.__url__)).strip().split('\n')))
 
         vb.pack_start(label)
@@ -3413,8 +3396,6 @@ class gPodder(BuilderWidget, dbus.service.Object):
         self.sync_ui = gPodderSyncUI(self.config, self.notification,
                 self.main_window,
                 self.show_confirmation,
-                self.update_episode_list_icons,
-                self.update_podcast_list_model,
                 self.toolPreferences,
                 self.channels,
                 self.download_status_model,
